@@ -1,0 +1,39 @@
+import React from "react";
+import { Socket } from "socket.io-client";
+import { Card as CardType } from "../../pages";
+import { styled } from "../../stitches.config";
+import { Card } from "../Card";
+import { Slot } from "../Slot";
+
+const Row = (props: {
+  row: (CardType | undefined)[];
+  socket: Socket;
+}) => (
+  <>
+    {props.row.map((card, index) =>
+      card ? (
+        <div key={`${card.color}-${card.digit}`}>
+          <Card card={card} source="row" locationIndex={index} />
+        </div>
+      ) : (
+        <div key={index}>
+          <Slot
+            cards={[]}
+            moveCard={(item) => {
+              console.log(item);
+              props.socket?.emit("moveCard", {
+                source: (item as any).source,
+                target: "row",
+                card: (item as any).card,
+                sourceIndex: (item as any).locationIndex,
+                targetIndex: index,
+              });
+            }}
+          ></Slot>
+        </div>
+      )
+    )}
+  </>
+);
+
+export default Row;
