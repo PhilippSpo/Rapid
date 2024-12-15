@@ -6,7 +6,7 @@ export class Game {
   playingField: Card[][][];
   players: Player[];
   scores: Array<{ player: Player; score: number }> = [];
-  status = "pending";
+  status: "pending" | "started" | "finished" = "pending";
   constructor() {
     this.playingField = [];
     this.players = [];
@@ -134,13 +134,13 @@ export class Game {
       return;
     }
     const card =
-      player.deck.deliveryStack[player.deck.deliveryStack.length - 1];
+      player.deck.faceUpDiscardPile[player.deck.faceUpDiscardPile.length - 1];
     if (!card) {
       console.error("no delivery stack card");
       return;
     }
     this.placeCardOnPlayingField(card, slot.row, slot.column);
-    player.deck.deliveryStack.pop();
+    player.deck.faceUpDiscardPile.pop();
   }
 
   placeRowCardOnRow(

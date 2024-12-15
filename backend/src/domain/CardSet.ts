@@ -18,7 +18,7 @@ export class CardSet {
   shuffle() {
     shuffle(this.cards);
   }
-  pull(numberOfCardsToPull: number) {
-    return this.cards.splice(0, numberOfCardsToPull);
+  draw(numberOfCardsToDraw: number) {
+    return this.cards.splice(0, numberOfCardsToDraw);
   }
 }

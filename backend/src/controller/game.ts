@@ -89,7 +89,7 @@ export class GameController {
       return;
     }
     try {
-      player.deck?.moveCardsFromHandToDeliveryStack();
+      player.deck?.transferCardsFromReserveToDiscardPile();
     } catch (e) {
       console.error(e);
     }

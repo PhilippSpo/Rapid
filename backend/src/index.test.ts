@@ -8,12 +8,12 @@ describe("game", () => {
     const playerTwo = game.addPlayer("Two");
     expect(playerOne.deck.philgrettoStack).toHaveLength(10);
     expect(playerOne.deck.row).toHaveLength(3);
-    expect(playerOne.deck.hand).toHaveLength(40 - 13);
-    expect(playerOne.deck.deliveryStack).toHaveLength(0);
+    expect(playerOne.deck.faceDownReservePile).toHaveLength(40 - 13);
+    expect(playerOne.deck.faceUpDiscardPile).toHaveLength(0);
     expect(playerTwo.deck.philgrettoStack).toHaveLength(10);
     expect(playerTwo.deck.row).toHaveLength(3);
-    expect(playerTwo.deck.hand).toHaveLength(40 - 13);
-    expect(playerTwo.deck.deliveryStack).toHaveLength(0);
+    expect(playerTwo.deck.faceDownReservePile).toHaveLength(40 - 13);
+    expect(playerTwo.deck.faceUpDiscardPile).toHaveLength(0);
     expect(playerOne.color).not.toBe(playerTwo.color);
   });
   it("should allow to add a cards to the playing field", () => {

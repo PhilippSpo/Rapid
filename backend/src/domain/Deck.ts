@@ -15,30 +15,29 @@ const getNumberOfRowCards = (numberOfPlayers: number) => {
 export class Deck {
   philgrettoStack: Array<Card | undefined>;
   row: Array<Card | undefined>;
-  hand: Card[];
-  deliveryStack: Card[];
+  faceDownReservePile: Card[];
+  faceUpDiscardPile: Card[];
 
   constructor(cardSet: CardSet, numberOfPlayers: number) {
     cardSet.shuffle();
-    this.philgrettoStack = cardSet.pull(10);
-    // TODO number of cards in the row depend on number of players
-    this.row = cardSet.pull(getNumberOfRowCards(numberOfPlayers));
-    this.hand = cardSet.cards;
-    this.deliveryStack = [];
+    this.philgrettoStack = cardSet.draw(10);
+    this.row = cardSet.draw(getNumberOfRowCards(numberOfPlayers));
+    this.faceDownReservePile = cardSet.cards;
+    this.faceUpDiscardPile = [];
   }
-  pullCardFromRowAtPosition(position: number) {
+  drawCardFromRowAtPosition(position: number) {
     this.row[position] = undefined;
   }
-  moveCardsFromHandToDeliveryStack(numberOfCardsToMove = 3) {
-    if (this.hand.length < numberOfCardsToMove) {
-      this.hand = [...this.hand, ...this.deliveryStack];
-      this.deliveryStack = [];
-      shuffle(this.hand);
+  transferCardsFromReserveToDiscardPile(numberOfCardsToMove = 3) {
+    if (this.faceDownReservePile.length < numberOfCardsToMove) {
+      this.faceDownReservePile = [...this.faceDownReservePile, ...this.faceUpDiscardPile];
+      this.faceUpDiscardPile = [];
+      shuffle(this.faceDownReservePile);
     }
-    const cardsToMove = this.hand.splice(
+    const cardsToMove = this.faceDownReservePile.splice(
       -numberOfCardsToMove,
       numberOfCardsToMove
     );
-    this.deliveryStack.push(...cardsToMove);
+    this.faceUpDiscardPile.push(...cardsToMove);
   }
 }
