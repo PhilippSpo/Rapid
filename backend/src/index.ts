@@ -40,24 +40,7 @@ const init = async () => {
         controller.createGame(socket, roomsRepo);
       });
       socket.on("joinGame", (payload: { roomCode: string }) => {
-        const room = roomsRepo.load(payload.roomCode);
-        if (!room) {
-          console.error(new Error("room not found"));
-          return;
-        }
-        const player = room.game.addPlayer(name);
-        player.setActive();
-
-        socket.join(room.code);
-        socket.emit("room", {
-          code: room.code,
-          gameStatus: room.game.status,
-          scores: room.game.scores,
-        });
-        socket.emit("clients", room.game.players);
-        socket.emit("playingField", room.game.playingField);
-        socket.to(room.code).emit("clients", room.game.players);
-        socket.to(room.code).emit("playingField", room.game.playingField);
+        controller.joinGame(socket, roomsRepo, payload.roomCode);
       });
 
       socket.on("leaveGame", (payload: { roomCode: string }) => {
