@@ -36,7 +36,7 @@ const init = async () => {
 
   io.on("connection", function (socket) {
     const { name } = socket.handshake.auth;
-    const socketRepository = new SocketRepository(socket);
+    const socketRepository = new SocketRepository(io, socket);
     const lobbyController = new LobbyController(roomsRepo, socketRepository, name);
     const gameController = new GameController(roomsRepo, socketRepository, name);
     console.log(`player ${name} trying to connect`);

@@ -19,10 +19,12 @@ export class LobbyController {
       gameStatus: room.game.status,
       scores: room.game.scores,
     });
-    this.socket.sendEventToPlayer("clients", room.game.players);
-    this.socket.sendEventToPlayer("playingField", room.game.playingField);
     this.socket.sendEventToRoom(room.code, "clients", room.game.players);
-    this.socket.sendEventToRoom(room.code, "playingField", room.game.playingField);
+    this.socket.sendEventToRoom(
+      room.code,
+      "playingField",
+      room.game.playingField
+    );
   }
 
   joinRoom(roomCode: string) {
@@ -40,10 +42,12 @@ export class LobbyController {
       gameStatus: room.game.status,
       scores: room.game.scores,
     });
-    this.socket.sendEventToPlayer("clients", room.game.players);
-    this.socket.sendEventToPlayer("playingField", room.game.playingField);
     this.socket.sendEventToRoom(room.code, "clients", room.game.players);
-    this.socket.sendEventToRoom(room.code, "playingField", room.game.playingField);
+    this.socket.sendEventToRoom(
+      room.code,
+      "playingField",
+      room.game.playingField
+    );
   }
 
   leaveRoom(roomCode: string) {
@@ -74,8 +78,18 @@ export class LobbyController {
       return;
     }
     player.setReady();
-    this.socket.sendEventToPlayer("clients", room.game.players);
-    this.socket.sendEventToRoom(room.code, "clients", room.game.players);
+    room.game.startGame();
+    this.socket.sendEventToRoom(roomCode, "clients", room.game.players);
+    this.socket.sendEventToRoom(
+      roomCode,
+      "playingField",
+      room.game.playingField
+    );
+    this.socket.sendEventToRoom(roomCode, "room", {
+      code: room.code,
+      gameStatus: room.game.status,
+      scores: room.game.scores,
+    });
   }
 
   playerUnready(roomCode: string) {
@@ -90,7 +104,6 @@ export class LobbyController {
       return;
     }
     player.setUnready();
-    this.socket.sendEventToPlayer("clients", room.game.players);
     this.socket.sendEventToRoom(room.code, "clients", room.game.players);
   }
 }

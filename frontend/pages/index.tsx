@@ -77,7 +77,7 @@ export default function Home() {
   const [socket, setSocket] = useState<Socket | null>();
   const [Backend, setBackend] = useState<typeof HTML5Backend | null>(null);
   const me = clients.find((client) => client.name === name);
-  console.log("room", room);
+  console.table(room);
   useEffect(() => {
     const loadBackend = async () => {
       const backend = window.matchMedia("(hover: hover)").matches

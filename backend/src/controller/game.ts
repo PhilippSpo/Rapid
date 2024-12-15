@@ -63,19 +63,13 @@ export class GameController {
     } catch (e) {
       console.error(e);
     }
-    this.socket.sendEventToPlayer("playingField", room.game.playingField);
     this.socket.sendEventToRoom(
       room.code,
       "playingField",
       room.game.playingField
     );
-    this.socket.sendEventToPlayer("clients", room.game.players);
     this.socket.sendEventToRoom(room.code, "clients", room.game.players);
-    this.socket.sendEventToPlayer("room", {
-      code: room.code,
-      gameStatus: room.game.status,
-      scores: room.game.scores,
-    });
+
     this.socket.sendEventToRoom(room.code, "room", {
       code: room.code,
       gameStatus: room.game.status,
@@ -99,7 +93,6 @@ export class GameController {
     } catch (e) {
       console.error(e);
     }
-    this.socket.sendEventToPlayer("clients", room.game.players);
     this.socket.sendEventToRoom(room.code, "clients", room.game.players);
   }
 }

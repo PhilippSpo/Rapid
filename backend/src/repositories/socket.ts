@@ -1,8 +1,11 @@
-import { Socket } from "socket.io";
+import { Server as SocketServer, Socket } from "socket.io";
 import { ISocketRepository } from "../controller/interfaces";
 
 export class SocketRepository implements ISocketRepository {
-  constructor(private socket: Socket) {}
+  constructor(
+    private io: InstanceType<typeof SocketServer>,
+    private socket: Socket
+  ) {}
 
   joinRoom(roomCode: string) {
     this.socket.join(roomCode);
@@ -13,6 +16,10 @@ export class SocketRepository implements ISocketRepository {
   }
 
   sendEventToRoom(roomCode: string, event: string, data: any) {
+    this.io.in(roomCode).emit(event, data);
+  }
+
+  sendEventToRoomExceptSender(roomCode: string, event: string, data: any) {
     this.socket.to(roomCode).emit(event, data);
   }
 }
