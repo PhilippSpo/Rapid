@@ -2,8 +2,7 @@
 
 import Hapi from "@hapi/hapi";
 import { Server as SocketServer } from "socket.io";
-import { Game } from "./Game";
-import Room from "./Room";
+import Room from "./domain/Room";
 
 const init = async () => {
   const rooms: Record<string, Room> = {};

@@ -1,5 +1,5 @@
-import { Card } from "./Card";
-import { Game } from "./Game";
+import { Card } from "./domain/Card";
+import { Game } from "./domain/Game";
 
 describe("game", () => {
   it("should initialize players with decks and different colors", () => {

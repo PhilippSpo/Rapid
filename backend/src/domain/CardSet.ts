@@ -1,5 +1,5 @@
 import { Card, Color, colors } from "./Card";
-import { shuffle } from "./utils";
+import { shuffle } from "../utils";
 
 export const cardSetColors = ["pink", "lightgreen", "brown", "purple", "orange"] as const;
 export type CardSetColor = typeof cardSetColors[number];

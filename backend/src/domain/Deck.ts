@@ -1,6 +1,6 @@
 import { Card } from "./Card";
 import { CardSet } from "./CardSet";
-import { shuffle } from "./utils";
+import { shuffle } from "../utils";
 
 const getNumberOfRowCards = (numberOfPlayers: number) => {
   if (numberOfPlayers <= 2) {
