@@ -3,12 +3,13 @@
 import Hapi from "@hapi/hapi";
 import { Server as SocketServer } from "socket.io";
 import { Game } from "./Game";
+import Room from "./Room";
 
 const init = async () => {
-  const game = new Game();
+  const rooms: Record<string, Room> = {};
   const server = Hapi.server({
     port: 4000,
-    host: "192.168.178.126",
+    host: "localhost",
   });
 
   server.route({
@@ -32,40 +33,93 @@ const init = async () => {
   });
 
   io.on("connection", function (socket) {
-    const name = socket.handshake.auth.name;
-    console.log("player connected", name);
+    const { name } = socket.handshake.auth;
+    console.log(`player ${name} trying to connect`);
     try {
-      const player = game.addPlayer(name);
-      player.setActive();
+      socket.on("createGame", () => {
+        const room = new Room();
+        rooms[room.code] = room;
+        room.game.addPlayer(name);
+        socket.join(room.code);
+        socket.emit("room", {
+          code: room.code,
+          gameStatus: room.game.status,
+          scores: room.game.scores,
+        });
+        socket.emit("clients", room.game.players);
+        socket.emit("playingField", room.game.playingField);
+        socket.to(room.code).emit("clients", room.game.players);
+        socket.to(room.code).emit("playingField", room.game.playingField);
+      });
+      socket.on("joinGame", (payload: { roomCode: string }) => {
+        console.log(rooms, payload);
+        const room = rooms[payload.roomCode];
+        if (!room) {
+          console.error(new Error("room not found"));
+          return;
+        }
+        const player = room.game.addPlayer(name);
+        player.setActive();
 
-      socket.emit("clients", game.players);
-      socket.emit("playingField", game.playingField);
-      socket.broadcast.emit("clients", game.players);
-      socket.broadcast.emit("playingField", game.playingField);
-      socket.on("disconnect", () => {
-        console.log("disconnected", player);
+        socket.join(room.code);
+        socket.emit("room", {
+          code: room.code,
+          gameStatus: room.game.status,
+          scores: room.game.scores,
+        });
+        socket.emit("clients", room.game.players);
+        socket.emit("playingField", room.game.playingField);
+        socket.to(room.code).emit("clients", room.game.players);
+        socket.to(room.code).emit("playingField", room.game.playingField);
+      });
+
+      socket.on("leaveGame", (payload: { roomCode: string }) => {
+        console.log("disconnected", name);
+        const room = rooms[payload.roomCode];
+        if (!room) {
+          console.error(new Error("room not found"));
+          return;
+        }
+        const player = room.game.getPlayerByName(name);
+        if (!player) {
+          console.error(new Error("player not found"));
+          return;
+        }
         player.setInactive();
-        socket.broadcast.emit("clients", game.players);
+        socket.to(room.code).emit("clients", room.game.players);
       });
       socket.on(
         "moveCard",
         (payload: {
+          roomCode: string;
           slot: { row: number; column: number };
           sourceIndex: number;
           targetIndex: number;
           source: "philgrettoStack" | "row" | "deliveryStack";
           target: "playingField" | "row";
         }) => {
-          console.log(payload);
+          const room = rooms[payload.roomCode];
+          if (!room) {
+            console.error(new Error("room not found"));
+            return;
+          }
+          const player = room.game.getPlayerByName(name);
+          if (!player) {
+            console.error(new Error("player not found"));
+            return;
+          }
           try {
             if (
               payload.source === "philgrettoStack" &&
               payload.target === "playingField"
             ) {
-              game.placePhilgrettoCardOnPlayingField(player.name, payload.slot);
+              room.game.placePhilgrettoCardOnPlayingField(
+                player.name,
+                payload.slot
+              );
             }
             if (payload.source === "row" && payload.target === "playingField") {
-              game.placeRowCardOnPlayingField(
+              room.game.placeRowCardOnPlayingField(
                 player.name,
                 payload.sourceIndex,
                 payload.slot
@@ -75,7 +129,7 @@ const init = async () => {
               payload.source === "deliveryStack" &&
               payload.target === "playingField"
             ) {
-              game.placeDeliveryStackCardOnPlayingField(
+              room.game.placeDeliveryStackCardOnPlayingField(
                 player.name,
                 payload.slot
               );
@@ -84,10 +138,13 @@ const init = async () => {
               payload.source === "philgrettoStack" &&
               payload.target === "row"
             ) {
-              game.placePhilgrettoCardOnRow(player.name, payload.targetIndex);
+              room.game.placePhilgrettoCardOnRow(
+                player.name,
+                payload.targetIndex
+              );
             }
             if (payload.source === "row" && payload.target === "row") {
-              game.placeRowCardOnRow(
+              room.game.placeRowCardOnRow(
                 player.name,
                 payload.sourceIndex,
                 payload.targetIndex
@@ -96,23 +153,87 @@ const init = async () => {
           } catch (e) {
             console.error(e);
           }
-          socket.emit("playingField", game.playingField);
-          socket.broadcast.emit("playingField", game.playingField);
-          socket.emit("clients", game.players);
-          socket.broadcast.emit("clients", game.players);
-          console.log(game.scores);
-          socket.emit("scores", game.scores);
-          socket.broadcast.emit("scores", game.scores);
+          socket.emit("playingField", room.game.playingField);
+          socket.to(room.code).emit("playingField", room.game.playingField);
+          socket.emit("clients", room.game.players);
+          socket.to(room.code).emit("clients", room.game.players);
+          socket.emit("room", {
+            code: room.code,
+            gameStatus: room.game.status,
+            scores: room.game.scores,
+          });
+          socket.to(room.code).emit("room", {
+            code: room.code,
+            gameStatus: room.game.status,
+            scores: room.game.scores,
+          });
         }
       );
-      socket.on("turnHandCardsToDeliveryStack", () => {
-        try {
-          player.deck.moveCardsFromHandToDeliveryStack();
-        } catch (e) {
-          console.error(e);
+      socket.on(
+        "turnHandCardsToDeliveryStack",
+        (payload: { roomCode: string }) => {
+          const room = rooms[payload.roomCode];
+          if (!room) {
+            console.error(new Error("room not found"));
+            return;
+          }
+          const player = room.game.getPlayerByName(name);
+          if (!player) {
+            console.error(new Error("player not found"));
+            return;
+          }
+          try {
+            player.deck?.moveCardsFromHandToDeliveryStack();
+          } catch (e) {
+            console.error(e);
+          }
+          socket.emit("clients", room.game.players);
+          socket.to(room.code).emit("clients", room.game.players);
         }
-        socket.emit("clients", game.players);
-        socket.broadcast.emit("clients", game.players);
+      );
+
+      socket.on("playerReady", (payload: { roomCode: string }) => {
+        const room = rooms[payload.roomCode];
+        if (!room) {
+          console.error(new Error("room not found"));
+          return;
+        }
+        const player = room.game.getPlayerByName(name);
+        if (!player) {
+          console.error(new Error("player not found"));
+          return;
+        }
+        player.setReady();
+        room.game.startGame();
+        socket.emit("clients", room.game.players);
+        socket.to(room.code).emit("clients", room.game.players);
+        socket.emit("playingField", room.game.playingField);
+        socket.to(room.code).emit("playingField", room.game.playingField);
+        socket.emit("room", {
+          code: room.code,
+          gameStatus: room.game.status,
+          scores: room.game.scores,
+        });
+        socket.to(room.code).emit("room", {
+          code: room.code,
+          gameStatus: room.game.status,
+          scores: room.game.scores,
+        });
+      });
+      socket.on("playerUnready", (payload: { roomCode: string }) => {
+        const room = rooms[payload.roomCode];
+        if (!room) {
+          console.error(new Error("room not found"));
+          return;
+        }
+        const player = room.game.getPlayerByName(name);
+        if (!player) {
+          console.error(new Error("player not found"));
+          return;
+        }
+        player.setUnready();
+        socket.emit("clients", room.game.players);
+        socket.to(room.code).emit("clients", room.game.players);
       });
     } catch (e) {
       console.error(e);

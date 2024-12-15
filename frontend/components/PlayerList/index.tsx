@@ -10,9 +10,9 @@ const StyledList = styled("ul", {
 
 export const PlayerList = (props: { players: Player[] }) => (
   <StyledList>
-    {props.players.map((message, index) => (
+    {props.players.map((player, index) => (
       <li key={index}>
-        {message.name} ({message.color})
+        {player.name} ({player.color}): {player.score}
       </li>
     ))}
   </StyledList>

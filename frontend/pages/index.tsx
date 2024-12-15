@@ -4,8 +4,10 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { io, Socket } from "socket.io-client";
 import { Card } from "../components/Card";
+import CreateRoomForm from "../components/CreateRoomForm";
 import DeliveryStack from "../components/DeliveryStack";
 import GameArea from "../components/GameArea";
+import { JoinRoomForm } from "../components/JoinRoomForm";
 import PhilgrettoStack from "../components/PhilgrettoStack";
 import PlayerCards from "../components/PlayerCards";
 import { PlayerList } from "../components/PlayerList";
@@ -31,12 +33,20 @@ type Deck = {
 export type Player = {
   name: string;
   color: string;
-  deck: Deck;
+  deck?: Deck;
+  score: number;
+  isReady: boolean;
 };
 
 type Score = {
   player: Player;
   score: number;
+};
+
+type Room = {
+  code: string;
+  gameStatus: "pending" | "started" | "finished";
+  scores: Score[];
 };
 
 const Container = styled("div", {
@@ -57,17 +67,17 @@ const Button = styled("button", {
 
 export default function Home() {
   const [clients, setClients] = useState<Player[]>([]);
-  const [scores, setScores] = useState<Score[]>([]);
   const [playingField, setPlayingField] = useState<PlayingField>([]);
   const [name, setName] = useState(
     typeof window !== "undefined"
       ? localStorage.getItem("playerName") || ""
       : ""
   );
+  const [room, setRoom] = useState<Room | null>(null);
   const [socket, setSocket] = useState<Socket | null>();
   const [Backend, setBackend] = useState<typeof HTML5Backend | null>(null);
   const me = clients.find((client) => client.name === name);
-  console.log("me", me);
+  console.log("room", room);
   useEffect(() => {
     const loadBackend = async () => {
       const backend = window.matchMedia("(hover: hover)").matches
@@ -81,15 +91,38 @@ export default function Home() {
     if (!socket) {
       if (name) {
         console.log("connect");
-        setSocket(io("ws://192.168.178.126:4000", { auth: { name } }));
+        const socket = io("ws://localhost:4000", { auth: { name } });
+        setSocket(socket);
+        if (localStorage.getItem("roomCode")) {
+          socket.emit("joinGame", {
+            roomCode: localStorage.getItem("roomCode"),
+          });
+        }
       }
+      return;
+    }
+  }, [socket, name]);
+  useEffect(() => {
+    if (!socket) {
+      return;
+    }
+    return () => {
+      if (room) {
+        socket.emit("leaveGame", {
+          roomCode: room.code,
+        });
+      }
+    };
+  }, [socket, room]);
+  useEffect(() => {
+    if (!socket) {
       return;
     }
     return () => {
       console.log("disconnect");
       socket.disconnect();
     };
-  }, [socket, name]);
+  }, [socket]);
   useEffect(() => {
     if (!socket) {
       return;
@@ -101,19 +134,12 @@ export default function Home() {
       console.log("receive clients");
       setClients(clients);
     });
-    // socket.on("user connected", (connectedClient: Player) => {
-    //   setClients((prevClients) => [...prevClients, connectedClient]);
-    // });
-    socket.on("user disconnected", (disconnectedClient: Player) => {
-      setClients((prevClients) =>
-        prevClients.filter((client) => disconnectedClient.name !== client.name)
-      );
-    });
     socket.on("playingField", (playingField: PlayingField) => {
       setPlayingField(playingField);
     });
-    socket.on("scores", (scores: Score[]) => {
-      setScores(scores);
+    socket.on("room", (room: Room) => {
+      setRoom(room);
+      localStorage.setItem("roomCode", room.code);
     });
   }, [socket]);
 
@@ -127,48 +153,98 @@ export default function Home() {
       {Backend && (
         <DndProvider backend={Backend}>
           <Main>
-            {!me || !socket ? (
+            {!name ? (
               <SignUpForm
-                onSubmit={(name) => {
+                onSubmit={({ name }) => {
                   setName(name);
                   localStorage.setItem("playerName", name);
                 }}
               />
-            ) : (
+            ) : null}
+            {name && !room && socket ? (
               <>
-                {scores.length > 0 ? (
+                <JoinRoomForm
+                  onSubmit={({ roomCode }) => {
+                    socket.emit("joinGame", { roomCode });
+                  }}
+                />
+                <CreateRoomForm
+                  onSubmit={() => {
+                    socket.emit("createGame");
+                  }}
+                />
+              </>
+            ) : null}
+            {me && room && socket ? (
+              <>
+                {room.gameStatus === "finished" ? (
                   <ul>
-                    {scores.map((score) => (
+                    {room.scores.map((score) => (
                       <li>
                         {score.player.name}: {score.score}
                       </li>
                     ))}
                   </ul>
-                ) : (
+                ) : null}
+                {["pending", "finished"].includes(room.gameStatus) ? (
+                  <button
+                    onClick={() => {
+                      if (!me.isReady) {
+                        socket.emit("playerReady", { roomCode: room.code });
+                      } else {
+                        socket.emit("playerUnready", { roomCode: room.code });
+                      }
+                    }}
+                  >
+                    {me.isReady ? "unready" : "ready"}
+                  </button>
+                ) : null}
+                {room.gameStatus === "started" ? (
                   <GameArea
                     numberOfRowsAndColumns={playingField.length}
                     numberOfPlayers={clients.length}
                   >
-                    <PlayingField socket={socket} playingField={playingField} />
-                    <PlayerCards player={me}>
-                      <PhilgrettoStack
-                        philgrettoStack={me.deck.philgrettoStack}
-                      />
-                      <Row row={me.deck.row} socket={socket} />
-                      <Button
-                        onClick={() => {
-                          socket.emit("turnHandCardsToDeliveryStack");
-                        }}
-                      >
-                        🔄
-                      </Button>
-                      <DeliveryStack deliveryStack={me.deck.deliveryStack} />
-                    </PlayerCards>
+                    <PlayingField
+                      socket={socket}
+                      playingField={playingField}
+                      roomCode={room.code}
+                    />
+                    {me.deck ? (
+                      <PlayerCards player={me}>
+                        <PhilgrettoStack
+                          philgrettoStack={me.deck.philgrettoStack}
+                        />
+                        <Row
+                          row={me.deck.row}
+                          socket={socket}
+                          roomCode={room.code}
+                        />
+                        <Button
+                          onClick={() => {
+                            socket.emit("turnHandCardsToDeliveryStack", {
+                              roomCode: room.code,
+                            });
+                          }}
+                        >
+                          🔄
+                        </Button>
+                        <DeliveryStack deliveryStack={me.deck.deliveryStack} />
+                      </PlayerCards>
+                    ) : null}
                   </GameArea>
-                )}
+                ) : null}
                 <PlayerList players={clients} />
               </>
-            )}
+            ) : null}
+            <button
+              onClick={() => {
+                localStorage.clear();
+                window.location.reload();
+              }}
+            >
+              Logout
+            </button>
+            {room ? room.code : null}
           </Main>
         </DndProvider>
       )}

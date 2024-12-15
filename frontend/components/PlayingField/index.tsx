@@ -13,6 +13,7 @@ export const StyledPlayingField = styled("div", {
 const PlayingField = (props: {
   playingField: PlayingFieldType;
   socket: Socket;
+  roomCode: string;
 }) => (
   <StyledPlayingField>
     {props.playingField.flatMap((row, rowIndex) =>
@@ -28,6 +29,7 @@ const PlayingField = (props: {
               card: (item as any).card,
               sourceIndex: (item as any).locationIndex,
               slot: { row: rowIndex, column: columnIndex },
+              roomCode: props.roomCode,
             });
           }}
         />

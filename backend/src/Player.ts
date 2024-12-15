@@ -3,15 +3,16 @@ import { Deck } from "./Deck";
 
 export class Player {
   name: string;
+  score: number;
   color: CardSetColor;
-  cardSet: CardSet;
-  deck: Deck;
+  cardSet?: CardSet;
+  deck?: Deck;
   isActive = true;
+  isReady = false;
   constructor(name: string, color: CardSetColor, numberOfPlayers: number) {
     this.name = name;
     this.color = color;
-    this.cardSet = new CardSet(color);
-    this.deck = new Deck(this.cardSet, numberOfPlayers);
+    this.score = 0;
   }
   resetDeck(numberOfPlayers: number) {
     this.cardSet = new CardSet(this.color);
@@ -22,5 +23,14 @@ export class Player {
   }
   setActive() {
     this.isActive = true;
+  }
+  addScore(score: number) {
+    this.score = this.score + score;
+  }
+  setReady() {
+    this.isReady = true;
+  }
+  setUnready() {
+    this.isReady = false;
   }
 }

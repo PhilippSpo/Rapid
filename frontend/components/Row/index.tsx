@@ -1,13 +1,13 @@
 import React from "react";
 import { Socket } from "socket.io-client";
 import { Card as CardType } from "../../pages";
-import { styled } from "../../stitches.config";
 import { Card } from "../Card";
 import { Slot } from "../Slot";
 
 const Row = (props: {
   row: (CardType | undefined)[];
   socket: Socket;
+  roomCode: string;
 }) => (
   <>
     {props.row.map((card, index) =>
@@ -27,6 +27,7 @@ const Row = (props: {
                 card: (item as any).card,
                 sourceIndex: (item as any).locationIndex,
                 targetIndex: index,
+                roomCode: props.roomCode,
               });
             }}
           ></Slot>

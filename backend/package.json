@@ -4,7 +4,10 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "ts-node-dev src/index.ts",
+    "build": "yarn clean && tsc",
+    "start": "ts-node dist/index.js",
+    "clean": "rm -rf dist",
+    "dev": "ts-node-dev src/index.ts",
     "test": "jest"
   },
   "dependencies": {

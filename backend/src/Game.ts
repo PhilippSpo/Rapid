@@ -7,8 +7,8 @@ export class Game {
   players: Player[];
   scores: Array<{ player: Player; score: number }> = [];
   status = "pending";
-  constructor(numberOfPlayers = 2) {
-    this.playingField = Game.initializePlayingField(numberOfPlayers);
+  constructor() {
+    this.playingField = [];
     this.players = [];
   }
   static initializePlayingField(numberOfPlayers: number) {
@@ -18,6 +18,16 @@ export class Game {
     return Array.from({ length: numberOfRows }).map(() =>
       Array.from({ length: numberOfColumns }).map(() => [])
     );
+  }
+  startGame() {
+    if (this.players.every((player) => player.isReady)) {
+      this.status = "started";
+      this.playingField = Game.initializePlayingField(this.players.length);
+      this.players.forEach((player) => {
+        player.resetDeck(this.players.length);
+      });
+      this.scores = [];
+    }
   }
   addPlayer(name: string) {
     const existingPlayer = this.getPlayerByName(name);
@@ -32,10 +42,6 @@ export class Game {
     }
     const player = new Player(name, color, this.players.length + 1);
     this.players.push(player);
-    this.playingField = Game.initializePlayingField(this.players.length);
-    this.players.forEach((player) => {
-      player.resetDeck(this.players.length);
-    });
     return player;
   }
   getPlayerByName(name: string) {
@@ -72,6 +78,10 @@ export class Game {
     if (!player) {
       throw new Error("player not found");
     }
+    if (!player.deck) {
+      console.error("player has no cards");
+      return;
+    }
     const card =
       player.deck.philgrettoStack[player.deck.philgrettoStack.length - 1];
     if (!card) {
@@ -94,9 +104,17 @@ export class Game {
     if (!player) {
       throw new Error("player not found");
     }
+    if (!player.deck) {
+      console.error("player has no cards");
+      return;
+    }
     const card = player.deck.row[rowIndex];
     if (!card) {
       console.error("no row card");
+      return;
+    }
+    if (!player.deck) {
+      console.error("player has no cards");
       return;
     }
     this.placeCardOnPlayingField(card, slot.row, slot.column);
@@ -110,6 +128,10 @@ export class Game {
     const player = this.players.find((player) => player.name === playerName);
     if (!player) {
       throw new Error("player not found");
+    }
+    if (!player.deck) {
+      console.error("player has no cards");
+      return;
     }
     const card =
       player.deck.deliveryStack[player.deck.deliveryStack.length - 1];
@@ -130,9 +152,17 @@ export class Game {
     if (!player) {
       throw new Error("player not found");
     }
+    if (!player.deck) {
+      console.error("player has no cards");
+      return;
+    }
     const card = player.deck.row[rowSourceIndex];
     if (!card) {
       console.error("no row card");
+      return;
+    }
+    if (!player.deck) {
+      console.error("player has no cards");
       return;
     }
     player.deck.row[rowSourceIndex] = undefined;
@@ -143,6 +173,10 @@ export class Game {
     const player = this.players.find((player) => player.name === playerName);
     if (!player) {
       throw new Error("player not found");
+    }
+    if (!player.deck) {
+      console.error("player has no cards");
+      return;
     }
     const card =
       player.deck.philgrettoStack[player.deck.philgrettoStack.length - 1];
@@ -180,14 +214,21 @@ export class Game {
   finishGame() {
     this.status = "finished";
     this.players.forEach((player) => {
+      if (!player.deck) {
+        console.error("player has no cards");
+        return;
+      }
       const numberOfPhilgrettoCards = player.deck.philgrettoStack.length;
       const numberOfCardsOnPlayingField = this.getPlayersCardsOnPlayingField(
         player
       );
+      const score = numberOfCardsOnPlayingField - numberOfPhilgrettoCards * 2;
       this.scores.push({
         player,
-        score: numberOfCardsOnPlayingField - numberOfPhilgrettoCards * 2,
+        score,
       });
+      player.addScore(score);
+      player.setUnready();
     });
   }
 }

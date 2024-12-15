@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 type SignUpProps = {
-  onSubmit: (name: string) => void;
+  onSubmit: (values: { name: string }) => void;
 };
 
 export const SignUpForm = (props: SignUpProps) => {
@@ -10,14 +10,18 @@ export const SignUpForm = (props: SignUpProps) => {
     <form
       onSubmit={(event) => {
         event.preventDefault();
-        props.onSubmit(name);
+        props.onSubmit({ name });
       }}
     >
-      <input
-        type="text"
-        value={name}
-        onChange={(event) => setName(event.target.value)}
-      />
+      <div>
+        <label htmlFor="name">Name</label>
+        <input
+          id="name"
+          type="text"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+        />
+      </div>
       <button type="submit">Teilnehmen</button>
     </form>
   );
