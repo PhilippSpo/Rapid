@@ -70,47 +70,10 @@ const init = async () => {
       );
 
       socket.on("playerReady", (payload: { roomCode: string }) => {
-        const room = roomsRepo.load(payload.roomCode);
-        if (!room) {
-          console.error(new Error("room not found"));
-          return;
-        }
-        const player = room.game.getPlayerByName(name);
-        if (!player) {
-          console.error(new Error("player not found"));
-          return;
-        }
-        player.setReady();
-        room.game.startGame();
-        socket.emit("clients", room.game.players);
-        socket.to(room.code).emit("clients", room.game.players);
-        socket.emit("playingField", room.game.playingField);
-        socket.to(room.code).emit("playingField", room.game.playingField);
-        socket.emit("room", {
-          code: room.code,
-          gameStatus: room.game.status,
-          scores: room.game.scores,
-        });
-        socket.to(room.code).emit("room", {
-          code: room.code,
-          gameStatus: room.game.status,
-          scores: room.game.scores,
-        });
+        lobbyController.playerReady(payload.roomCode);
       });
       socket.on("playerUnready", (payload: { roomCode: string }) => {
-        const room = roomsRepo.load(payload.roomCode);
-        if (!room) {
-          console.error(new Error("room not found"));
-          return;
-        }
-        const player = room.game.getPlayerByName(name);
-        if (!player) {
-          console.error(new Error("player not found"));
-          return;
-        }
-        player.setUnready();
-        socket.emit("clients", room.game.players);
-        socket.to(room.code).emit("clients", room.game.players);
+        lobbyController.playerUnready(payload.roomCode);
       });
     } catch (e) {
       console.error(e);

@@ -66,4 +66,36 @@ export class LobbyController {
     player.setInactive();
     this.socket.to(room.code).emit("clients", room.game.players);
   }
+
+  playerReady(roomCode: string) {
+    const room = this.roomsRepo.load(roomCode);
+    if (!room) {
+      console.error(new Error("room not found"));
+      return;
+    }
+    const player = room.game.getPlayerByName(this.playerName);
+    if (!player) {
+      console.error(new Error("player not found"));
+      return;
+    }
+    player.setReady();
+    this.socket.emit("clients", room.game.players);
+    this.socket.to(room.code).emit("clients", room.game.players);
+  }
+
+  playerUnready(roomCode: string) {
+    const room = this.roomsRepo.load(roomCode);
+    if (!room) {
+      console.error(new Error("room not found"));
+      return;
+    }
+    const player = room.game.getPlayerByName(this.playerName);
+    if (!player) {
+      console.error(new Error("player not found"));
+      return;
+    }
+    player.setUnready();
+    this.socket.emit("clients", room.game.players);
+    this.socket.to(room.code).emit("clients", room.game.players);
+  }
 }
