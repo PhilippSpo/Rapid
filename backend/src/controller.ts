@@ -1,10 +1,10 @@
 import { Socket } from "socket.io";
 import Room from "./domain/Room";
 
-type RoomsRepo = {
+export interface RoomsRepo {
   add: (room: Room) => void;
   load: (code: string) => Room | undefined;
-};
+}
 
 export class GameController {
   constructor(
