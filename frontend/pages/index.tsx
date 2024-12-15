@@ -94,7 +94,7 @@ export default function Home() {
         const socket = io("ws://localhost:4000", { auth: { name } });
         setSocket(socket);
         if (localStorage.getItem("roomCode")) {
-          socket.emit("joinGame", {
+          socket.emit("joinRoom", {
             roomCode: localStorage.getItem("roomCode"),
           });
         }
@@ -108,7 +108,7 @@ export default function Home() {
     }
     return () => {
       if (room) {
-        socket.emit("leaveGame", {
+        socket.emit("leaveRoom", {
           roomCode: room.code,
         });
       }
@@ -165,12 +165,12 @@ export default function Home() {
               <>
                 <JoinRoomForm
                   onSubmit={({ roomCode }) => {
-                    socket.emit("joinGame", { roomCode });
+                    socket.emit("joinRoom", { roomCode });
                   }}
                 />
                 <CreateRoomForm
                   onSubmit={() => {
-                    socket.emit("createGame");
+                    socket.emit("createRoom");
                   }}
                 />
               </>

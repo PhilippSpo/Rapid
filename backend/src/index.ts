@@ -41,15 +41,15 @@ const init = async () => {
     const gameController = new GameController(roomsRepo, socketRepository, name);
     console.log(`player ${name} trying to connect`);
     try {
-      socket.on("createGame", () => {
-        lobbyController.createGame();
+      socket.on("createRoom", () => {
+        lobbyController.createRoom();
       });
-      socket.on("joinGame", (payload: { roomCode: string }) => {
-        lobbyController.joinGame(payload.roomCode);
+      socket.on("joinRoom", (payload: { roomCode: string }) => {
+        lobbyController.joinRoom(payload.roomCode);
       });
 
-      socket.on("leaveGame", (payload: { roomCode: string }) => {
-        lobbyController.leaveGame(payload.roomCode);
+      socket.on("leaveRoom", (payload: { roomCode: string }) => {
+        lobbyController.leaveRoom(payload.roomCode);
       });
       socket.on(
         "moveCard",

@@ -8,7 +8,7 @@ export class LobbyController {
     private playerName: string
   ) {}
 
-  createGame() {
+  createRoom() {
     const room = new Room();
     this.roomsRepo.add(room);
     room.game.addPlayer(this.playerName);
@@ -25,7 +25,7 @@ export class LobbyController {
     this.socket.sendEventToRoom(room.code, "playingField", room.game.playingField);
   }
 
-  joinGame(roomCode: string) {
+  joinRoom(roomCode: string) {
     const room = this.roomsRepo.load(roomCode);
     if (!room) {
       console.error(new Error("room not found"));
@@ -46,7 +46,7 @@ export class LobbyController {
     this.socket.sendEventToRoom(room.code, "playingField", room.game.playingField);
   }
 
-  leaveGame(roomCode: string) {
+  leaveRoom(roomCode: string) {
     console.log("disconnected", this.playerName);
     const room = this.roomsRepo.load(roomCode);
     if (!room) {
