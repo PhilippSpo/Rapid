@@ -6,46 +6,47 @@ type RoomsRepo = {
   load: (code: string) => Room | undefined;
 };
 
-export const createGame = (socket: Socket, roomsRepo: RoomsRepo) => {
-  const { name } = socket.handshake.auth;
-  const room = new Room();
-  roomsRepo.add(room);
-  // rooms[room.code] = room;
-  room.game.addPlayer(name);
-  socket.join(room.code);
-  socket.emit("room", {
-    code: room.code,
-    gameStatus: room.game.status,
-    scores: room.game.scores,
-  });
-  socket.emit("clients", room.game.players);
-  socket.emit("playingField", room.game.playingField);
-  socket.to(room.code).emit("clients", room.game.players);
-  socket.to(room.code).emit("playingField", room.game.playingField);
-};
+export class GameController {
+  constructor(
+    private roomsRepo: RoomsRepo,
+    private socket: Socket,
+    private playerName: string
+  ) {}
 
-export const joinGame = (
-  socket: Socket,
-  roomsRepo: RoomsRepo,
-  roomCode: string
-) => {
-  const { name } = socket.handshake.auth;
-  const room = roomsRepo.load(roomCode);
-  if (!room) {
-    console.error(new Error("room not found"));
-    return;
+  createGame() {
+    const room = new Room();
+    this.roomsRepo.add(room);
+    room.game.addPlayer(this.playerName);
+    this.socket.join(room.code);
+    this.socket.emit("room", {
+      code: room.code,
+      gameStatus: room.game.status,
+      scores: room.game.scores,
+    });
+    this.socket.emit("clients", room.game.players);
+    this.socket.emit("playingField", room.game.playingField);
+    this.socket.to(room.code).emit("clients", room.game.players);
+    this.socket.to(room.code).emit("playingField", room.game.playingField);
   }
-  const player = room.game.addPlayer(name);
-  player.setActive();
 
-  socket.join(room.code);
-  socket.emit("room", {
-    code: room.code,
-    gameStatus: room.game.status,
-    scores: room.game.scores,
-  });
-  socket.emit("clients", room.game.players);
-  socket.emit("playingField", room.game.playingField);
-  socket.to(room.code).emit("clients", room.game.players);
-  socket.to(room.code).emit("playingField", room.game.playingField);
-};
+  joinGame(roomCode: string) {
+    const room = this.roomsRepo.load(roomCode);
+    if (!room) {
+      console.error(new Error("room not found"));
+      return;
+    }
+    const player = room.game.addPlayer(this.playerName);
+    player.setActive();
+
+    this.socket.join(room.code);
+    this.socket.emit("room", {
+      code: room.code,
+      gameStatus: room.game.status,
+      scores: room.game.scores,
+    });
+    this.socket.emit("clients", room.game.players);
+    this.socket.emit("playingField", room.game.playingField);
+    this.socket.to(room.code).emit("clients", room.game.players);
+    this.socket.to(room.code).emit("playingField", room.game.playingField);
+  }
+}

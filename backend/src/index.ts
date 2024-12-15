@@ -2,8 +2,8 @@
 
 import Hapi from "@hapi/hapi";
 import { Server as SocketServer } from "socket.io";
-import * as controller from "./controller";
 import { RoomsRepository } from "./repositories/rooms";
+import { GameController } from "./controller";
 
 const init = async () => {
   const roomsRepo = new RoomsRepository();
@@ -34,13 +34,14 @@ const init = async () => {
 
   io.on("connection", function (socket) {
     const { name } = socket.handshake.auth;
+    const controller = new GameController(roomsRepo, socket, name);
     console.log(`player ${name} trying to connect`);
     try {
       socket.on("createGame", () => {
-        controller.createGame(socket, roomsRepo);
+        controller.createGame();
       });
       socket.on("joinGame", (payload: { roomCode: string }) => {
-        controller.joinGame(socket, roomsRepo, payload.roomCode);
+        controller.joinGame(payload.roomCode);
       });
 
       socket.on("leaveGame", (payload: { roomCode: string }) => {
