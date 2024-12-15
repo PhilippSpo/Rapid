@@ -4,6 +4,7 @@ import Hapi from "@hapi/hapi";
 import { Server as SocketServer } from "socket.io";
 import { RoomsRepository } from "./repositories/rooms";
 import { LobbyController } from "./controller/lobby";
+import { GameController } from "./controller/game";
 
 const init = async () => {
   const roomsRepo = new RoomsRepository();
@@ -34,18 +35,19 @@ const init = async () => {
 
   io.on("connection", function (socket) {
     const { name } = socket.handshake.auth;
-    const controller = new LobbyController(roomsRepo, socket, name);
+    const lobbyController = new LobbyController(roomsRepo, socket, name);
+    const gameController = new GameController(roomsRepo, socket, name);
     console.log(`player ${name} trying to connect`);
     try {
       socket.on("createGame", () => {
-        controller.createGame();
+        lobbyController.createGame();
       });
       socket.on("joinGame", (payload: { roomCode: string }) => {
-        controller.joinGame(payload.roomCode);
+        lobbyController.joinGame(payload.roomCode);
       });
 
       socket.on("leaveGame", (payload: { roomCode: string }) => {
-        controller.leaveGame(payload.roomCode);
+        lobbyController.leaveGame(payload.roomCode);
       });
       socket.on(
         "moveCard",
@@ -57,97 +59,13 @@ const init = async () => {
           source: "philgrettoStack" | "row" | "deliveryStack";
           target: "playingField" | "row";
         }) => {
-          const room = roomsRepo.load(payload.roomCode);
-          if (!room) {
-            console.error(new Error("room not found"));
-            return;
-          }
-          const player = room.game.getPlayerByName(name);
-          if (!player) {
-            console.error(new Error("player not found"));
-            return;
-          }
-          try {
-            if (
-              payload.source === "philgrettoStack" &&
-              payload.target === "playingField"
-            ) {
-              room.game.placePhilgrettoCardOnPlayingField(
-                player.name,
-                payload.slot
-              );
-            }
-            if (payload.source === "row" && payload.target === "playingField") {
-              room.game.placeRowCardOnPlayingField(
-                player.name,
-                payload.sourceIndex,
-                payload.slot
-              );
-            }
-            if (
-              payload.source === "deliveryStack" &&
-              payload.target === "playingField"
-            ) {
-              room.game.placeDeliveryStackCardOnPlayingField(
-                player.name,
-                payload.slot
-              );
-            }
-            if (
-              payload.source === "philgrettoStack" &&
-              payload.target === "row"
-            ) {
-              room.game.placePhilgrettoCardOnRow(
-                player.name,
-                payload.targetIndex
-              );
-            }
-            if (payload.source === "row" && payload.target === "row") {
-              room.game.placeRowCardOnRow(
-                player.name,
-                payload.sourceIndex,
-                payload.targetIndex
-              );
-            }
-          } catch (e) {
-            console.error(e);
-          }
-          socket.emit("playingField", room.game.playingField);
-          socket.to(room.code).emit("playingField", room.game.playingField);
-          socket.emit("clients", room.game.players);
-          socket.to(room.code).emit("clients", room.game.players);
-          socket.emit("room", {
-            code: room.code,
-            gameStatus: room.game.status,
-            scores: room.game.scores,
-          });
-          socket.to(room.code).emit("room", {
-            code: room.code,
-            gameStatus: room.game.status,
-            scores: room.game.scores,
-          });
+          gameController.moveCard(payload.roomCode, payload);
         }
       );
       socket.on(
         "turnHandCardsToDeliveryStack",
         (payload: { roomCode: string }) => {
-          const room = roomsRepo.load(payload.roomCode);
-          if (!room) {
-            console.error(new Error("room not found"));
-            return;
-          }
-          const player = room.game.getPlayerByName(name);
-          if (!player) {
-            console.error(new Error("player not found"));
-            return;
-          }
-          try {
-            player.deck?.moveCardsFromHandToDeliveryStack();
-          } catch (e) {
-            console.error(e);
-          }
-          socket.emit("clients", room.game.players);
-          socket.to(room.code).emit("clients", room.game.players);
+          gameController.turnHandCardsToDeliveryStack(payload.roomCode);
         }
       );
 
