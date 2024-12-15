@@ -2,10 +2,11 @@
 
 import Hapi from "@hapi/hapi";
 import { Server as SocketServer } from "socket.io";
-import Room from "./domain/Room";
+import * as controller from "./controller";
+import { RoomsRepository } from "./repositories/rooms";
 
 const init = async () => {
-  const rooms: Record<string, Room> = {};
+  const roomsRepo = new RoomsRepository();
   const server = Hapi.server({
     port: 4000,
     host: "localhost",
@@ -36,23 +37,10 @@ const init = async () => {
     console.log(`player ${name} trying to connect`);
     try {
       socket.on("createGame", () => {
-        const room = new Room();
-        rooms[room.code] = room;
-        room.game.addPlayer(name);
-        socket.join(room.code);
-        socket.emit("room", {
-          code: room.code,
-          gameStatus: room.game.status,
-          scores: room.game.scores,
-        });
-        socket.emit("clients", room.game.players);
-        socket.emit("playingField", room.game.playingField);
-        socket.to(room.code).emit("clients", room.game.players);
-        socket.to(room.code).emit("playingField", room.game.playingField);
+        controller.createGame(socket, roomsRepo);
       });
       socket.on("joinGame", (payload: { roomCode: string }) => {
-        console.log(rooms, payload);
-        const room = rooms[payload.roomCode];
+        const room = roomsRepo.load(payload.roomCode);
         if (!room) {
           console.error(new Error("room not found"));
           return;
@@ -74,7 +62,7 @@ const init = async () => {
 
       socket.on("leaveGame", (payload: { roomCode: string }) => {
         console.log("disconnected", name);
-        const room = rooms[payload.roomCode];
+        const room = roomsRepo.load(payload.roomCode);
         if (!room) {
           console.error(new Error("room not found"));
           return;
@@ -97,7 +85,7 @@ const init = async () => {
           source: "philgrettoStack" | "row" | "deliveryStack";
           target: "playingField" | "row";
         }) => {
-          const room = rooms[payload.roomCode];
+          const room = roomsRepo.load(payload.roomCode);
           if (!room) {
             console.error(new Error("room not found"));
             return;
@@ -171,7 +159,7 @@ const init = async () => {
       socket.on(
         "turnHandCardsToDeliveryStack",
         (payload: { roomCode: string }) => {
-          const room = rooms[payload.roomCode];
+          const room = roomsRepo.load(payload.roomCode);
           if (!room) {
             console.error(new Error("room not found"));
             return;
@@ -192,7 +180,7 @@ const init = async () => {
       );
 
       socket.on("playerReady", (payload: { roomCode: string }) => {
-        const room = rooms[payload.roomCode];
+        const room = roomsRepo.load(payload.roomCode);
         if (!room) {
           console.error(new Error("room not found"));
           return;
@@ -220,7 +208,7 @@ const init = async () => {
         });
       });
       socket.on("playerUnready", (payload: { roomCode: string }) => {
-        const room = rooms[payload.roomCode];
+        const room = roomsRepo.load(payload.roomCode);
         if (!room) {
           console.error(new Error("room not found"));
           return;
