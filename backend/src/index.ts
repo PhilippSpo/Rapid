@@ -2,9 +2,10 @@
 
 import Hapi from "@hapi/hapi";
 import { Server as SocketServer } from "socket.io";
-import { RoomsRepository } from "./repositories/rooms";
-import { LobbyController } from "./controller/lobby";
 import { GameController } from "./controller/game";
+import { LobbyController } from "./controller/lobby";
+import { RoomsRepository } from "./repositories/rooms";
+import { SocketRepository } from "./repositories/socket";
 
 const init = async () => {
   const roomsRepo = new RoomsRepository();
@@ -35,8 +36,9 @@ const init = async () => {
 
   io.on("connection", function (socket) {
     const { name } = socket.handshake.auth;
-    const lobbyController = new LobbyController(roomsRepo, socket, name);
-    const gameController = new GameController(roomsRepo, socket, name);
+    const socketRepository = new SocketRepository(socket);
+    const lobbyController = new LobbyController(roomsRepo, socketRepository, name);
+    const gameController = new GameController(roomsRepo, socketRepository, name);
     console.log(`player ${name} trying to connect`);
     try {
       socket.on("createGame", () => {

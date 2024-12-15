@@ -1,15 +1,10 @@
-import { Socket } from "socket.io";
 import Room from "../domain/Room";
-
-export interface RoomsRepo {
-  add: (room: Room) => void;
-  load: (code: string) => Room | undefined;
-}
+import { IRoomsRepo, ISocketRepository } from "./interfaces";
 
 export class LobbyController {
   constructor(
-    private roomsRepo: RoomsRepo,
-    private socket: Socket,
+    private roomsRepo: IRoomsRepo,
+    private socket: ISocketRepository,
     private playerName: string
   ) {}
 
@@ -18,16 +13,16 @@ export class LobbyController {
     this.roomsRepo.add(room);
     room.game.addPlayer(this.playerName);
 
-    this.socket.join(room.code);
-    this.socket.emit("room", {
+    this.socket.joinRoom(room.code);
+    this.socket.sendEventToPlayer("room", {
       code: room.code,
       gameStatus: room.game.status,
       scores: room.game.scores,
     });
-    this.socket.emit("clients", room.game.players);
-    this.socket.emit("playingField", room.game.playingField);
-    this.socket.to(room.code).emit("clients", room.game.players);
-    this.socket.to(room.code).emit("playingField", room.game.playingField);
+    this.socket.sendEventToPlayer("clients", room.game.players);
+    this.socket.sendEventToPlayer("playingField", room.game.playingField);
+    this.socket.sendEventToRoom(room.code, "clients", room.game.players);
+    this.socket.sendEventToRoom(room.code, "playingField", room.game.playingField);
   }
 
   joinGame(roomCode: string) {
@@ -39,16 +34,16 @@ export class LobbyController {
     const player = room.game.addPlayer(this.playerName);
     player.setActive();
 
-    this.socket.join(room.code);
-    this.socket.emit("room", {
+    this.socket.joinRoom(room.code);
+    this.socket.sendEventToPlayer("room", {
       code: room.code,
       gameStatus: room.game.status,
       scores: room.game.scores,
     });
-    this.socket.emit("clients", room.game.players);
-    this.socket.emit("playingField", room.game.playingField);
-    this.socket.to(room.code).emit("clients", room.game.players);
-    this.socket.to(room.code).emit("playingField", room.game.playingField);
+    this.socket.sendEventToPlayer("clients", room.game.players);
+    this.socket.sendEventToPlayer("playingField", room.game.playingField);
+    this.socket.sendEventToRoom(room.code, "clients", room.game.players);
+    this.socket.sendEventToRoom(room.code, "playingField", room.game.playingField);
   }
 
   leaveGame(roomCode: string) {
@@ -64,7 +59,7 @@ export class LobbyController {
       return;
     }
     player.setInactive();
-    this.socket.to(room.code).emit("clients", room.game.players);
+    this.socket.sendEventToRoom(room.code, "clients", room.game.players);
   }
 
   playerReady(roomCode: string) {
@@ -79,8 +74,8 @@ export class LobbyController {
       return;
     }
     player.setReady();
-    this.socket.emit("clients", room.game.players);
-    this.socket.to(room.code).emit("clients", room.game.players);
+    this.socket.sendEventToPlayer("clients", room.game.players);
+    this.socket.sendEventToRoom(room.code, "clients", room.game.players);
   }
 
   playerUnready(roomCode: string) {
@@ -95,7 +90,7 @@ export class LobbyController {
       return;
     }
     player.setUnready();
-    this.socket.emit("clients", room.game.players);
-    this.socket.to(room.code).emit("clients", room.game.players);
+    this.socket.sendEventToPlayer("clients", room.game.players);
+    this.socket.sendEventToRoom(room.code, "clients", room.game.players);
   }
 }

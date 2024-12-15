@@ -1,11 +1,9 @@
-import { Socket } from "socket.io";
-import Room from "../domain/Room";
-import { RoomsRepo } from "./lobby";
+import { IRoomsRepo, ISocketRepository } from "./interfaces";
 
 export class GameController {
   constructor(
-    private roomsRepo: RoomsRepo,
-    private socket: Socket,
+    private roomsRepo: IRoomsRepo,
+    private socket: ISocketRepository,
     private playerName: string
   ) {}
 
@@ -65,16 +63,20 @@ export class GameController {
     } catch (e) {
       console.error(e);
     }
-    this.socket.emit("playingField", room.game.playingField);
-    this.socket.to(room.code).emit("playingField", room.game.playingField);
-    this.socket.emit("clients", room.game.players);
-    this.socket.to(room.code).emit("clients", room.game.players);
-    this.socket.emit("room", {
+    this.socket.sendEventToPlayer("playingField", room.game.playingField);
+    this.socket.sendEventToRoom(
+      room.code,
+      "playingField",
+      room.game.playingField
+    );
+    this.socket.sendEventToPlayer("clients", room.game.players);
+    this.socket.sendEventToRoom(room.code, "clients", room.game.players);
+    this.socket.sendEventToPlayer("room", {
       code: room.code,
       gameStatus: room.game.status,
       scores: room.game.scores,
     });
-    this.socket.to(room.code).emit("room", {
+    this.socket.sendEventToRoom(room.code, "room", {
       code: room.code,
       gameStatus: room.game.status,
       scores: room.game.scores,
@@ -97,7 +99,7 @@ export class GameController {
     } catch (e) {
       console.error(e);
     }
-    this.socket.emit("clients", room.game.players);
-    this.socket.to(room.code).emit("clients", room.game.players);
+    this.socket.sendEventToPlayer("clients", room.game.players);
+    this.socket.sendEventToRoom(room.code, "clients", room.game.players);
   }
 }
