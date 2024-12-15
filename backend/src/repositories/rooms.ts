@@ -1,4 +1,4 @@
-import { RoomsRepo } from "../controller";
+import { RoomsRepo } from "../controller/lobby";
 import Room from "../domain/Room";
 
 export class RoomsRepository implements RoomsRepo {

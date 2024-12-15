@@ -3,7 +3,7 @@
 import Hapi from "@hapi/hapi";
 import { Server as SocketServer } from "socket.io";
 import { RoomsRepository } from "./repositories/rooms";
-import { GameController } from "./controller";
+import { LobbyController } from "./controller/lobby";
 
 const init = async () => {
   const roomsRepo = new RoomsRepository();
@@ -34,7 +34,7 @@ const init = async () => {
 
   io.on("connection", function (socket) {
     const { name } = socket.handshake.auth;
-    const controller = new GameController(roomsRepo, socket, name);
+    const controller = new LobbyController(roomsRepo, socket, name);
     console.log(`player ${name} trying to connect`);
     try {
       socket.on("createGame", () => {
@@ -45,19 +45,7 @@ const init = async () => {
       });
 
       socket.on("leaveGame", (payload: { roomCode: string }) => {
-        console.log("disconnected", name);
-        const room = roomsRepo.load(payload.roomCode);
-        if (!room) {
-          console.error(new Error("room not found"));
-          return;
-        }
-        const player = room.game.getPlayerByName(name);
-        if (!player) {
-          console.error(new Error("player not found"));
-          return;
-        }
-        player.setInactive();
-        socket.to(room.code).emit("clients", room.game.players);
+        controller.leaveGame(payload.roomCode);
       });
       socket.on(
         "moveCard",
